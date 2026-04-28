@@ -95,44 +95,72 @@ export default function TransactionsPage() {
             <p className="text-muted">No transactions found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Date</th>
-                  {isAdmin && <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Member</th>}
-                  <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Type</th>
-                  <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Description</th>
-                  <th className="text-right text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map(tx => (
-                  <tr key={tx.id} className="hover:bg-card-hover transition-colors">
-                    <td className="px-5 py-3 text-sm text-muted whitespace-nowrap">
-                      {new Date(tx.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: '2-digit' })}
-                    </td>
-                    {isAdmin && (
-                      <td className="px-5 py-3 text-sm text-primary">
-                        {tx.profile?.full_name ?? '—'}
-                      </td>
-                    )}
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${TRANSACTION_BG[tx.type]}`}>
-                        {TRANSACTION_LABELS[tx.type]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-muted max-w-50 truncate">
-                      {tx.description ?? '—'}
-                    </td>
-                    <td className={`px-5 py-3 text-sm font-semibold tabular-nums text-right ${tx.amount > 0 ? 'text-accent' : 'text-danger'}`}>
+          <>
+            {/* Mobile list */}
+            <div className="md:hidden divide-y divide-border">
+              {filtered.map(tx => (
+                <div key={tx.id} className="px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${TRANSACTION_BG[tx.type]}`}>
+                      {TRANSACTION_LABELS[tx.type]}
+                    </span>
+                    <span className={`text-sm font-semibold ${tx.amount > 0 ? 'text-accent' : 'text-danger'}`}>
                       {tx.amount > 0 ? '+' : ''}{formatAUD(tx.amount)}
-                    </td>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted truncate flex-1">{tx.description ?? '—'}</p>
+                    <p className="text-xs text-muted shrink-0">
+                      {new Date(tx.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: '2-digit' })}
+                    </p>
+                  </div>
+                  {isAdmin && tx.profile?.full_name && (
+                    <p className="text-xs text-muted/70 mt-0.5">{tx.profile.full_name}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Date</th>
+                    {isAdmin && <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Member</th>}
+                    <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Type</th>
+                    <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Description</th>
+                    <th className="text-right text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filtered.map(tx => (
+                    <tr key={tx.id} className="hover:bg-card-hover transition-colors">
+                      <td className="px-5 py-3 text-sm text-muted whitespace-nowrap">
+                        {new Date(tx.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: '2-digit' })}
+                      </td>
+                      {isAdmin && (
+                        <td className="px-5 py-3 text-sm text-primary">
+                          {tx.profile?.full_name ?? '—'}
+                        </td>
+                      )}
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${TRANSACTION_BG[tx.type]}`}>
+                          {TRANSACTION_LABELS[tx.type]}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-muted max-w-50 truncate">
+                        {tx.description ?? '—'}
+                      </td>
+                      <td className={`px-5 py-3 text-sm font-semibold text-right ${tx.amount > 0 ? 'text-accent' : 'text-danger'}`}>
+                        {tx.amount > 0 ? '+' : ''}{formatAUD(tx.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 

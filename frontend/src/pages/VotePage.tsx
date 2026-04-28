@@ -212,13 +212,17 @@ export default function VotePage() {
             {/* Hours selector */}
             <div>
               <p className="text-xs text-muted mb-2">Hours attending</p>
-              <div className="flex gap-2">
+              <div className={`grid gap-2 ${
+                hoursOptions.length <= 2 ? 'grid-cols-2'
+                : hoursOptions.length <= 4 ? 'grid-cols-4'
+                : 'grid-cols-3'
+              }`}>
                 {hoursOptions.map((h) => (
                   <button
                     key={h}
                     type="button"
                     onClick={() => setSelectedHours(h)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    className={`py-2 rounded-lg text-sm font-semibold transition-all ${
                       selectedHours === h
                         ? "bg-accent text-surface"
                         : "bg-surface-alt border border-border text-muted hover:text-primary"

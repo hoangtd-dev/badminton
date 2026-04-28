@@ -29,23 +29,23 @@ export default function MembersPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Total Members</p>
-          <p className="text-2xl font-display font-bold text-primary">{members?.length ?? 0}</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Group Balance</p>
-          <p className="text-2xl font-display font-bold text-info">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-card border border-border rounded-xl p-3 sm:p-5">
+          <p className="text-[10px] sm:text-xs text-muted uppercase tracking-wider mb-1 leading-tight">Members</p>
+          <p className="text-xl sm:text-2xl font-display font-bold text-primary">{members?.length ?? 0}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3 sm:p-5">
+          <p className="text-[10px] sm:text-xs text-muted uppercase tracking-wider mb-1 leading-tight">Balance</p>
+          <p className="text-sm sm:text-2xl font-display font-bold text-info truncate">
             {formatAUD((members ?? []).reduce((s, m) => s + m.balance, 0))}
           </p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Low Balance</p>
-          <p className="text-2xl font-display font-bold text-warning">
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3 sm:p-5">
+          <p className="text-[10px] sm:text-xs text-muted uppercase tracking-wider mb-1 leading-tight">Low Bal</p>
+          <p className="text-xl sm:text-2xl font-display font-bold text-warning">
             {(members ?? []).filter(m => getMemberStatus(m) !== 'ok').length}
           </p>
-        </Card>
+        </div>
       </div>
 
       <input
@@ -55,7 +55,7 @@ export default function MembersPage() {
         className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
       />
 
-      {/* Table */}
+      {/* Member list */}
       <Card className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-5 space-y-3">
@@ -69,57 +69,90 @@ export default function MembersPage() {
             <p className="text-muted">No members found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Member</th>
-                  <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Phone</th>
-                  <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Role</th>
-                  <th className="text-right text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Balance</th>
-                  <th className="text-center text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map(member => {
-                  const status = getMemberStatus(member)
-                  const statusConf = STATUS_CONFIG[status]
-                  return (
-                    <tr key={member.id} className="hover:bg-card-hover transition-colors">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-card-hover border border-border flex items-center justify-center text-xs font-bold text-muted shrink-0">
-                            {getInitials(member.full_name)}
-                          </div>
-                          <span className="text-sm font-medium text-primary">{member.full_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-sm text-muted">{member.phone ?? '—'}</td>
-                      <td className="px-5 py-3">
-                        <Badge variant={member.role === 'admin' ? 'info' : 'default'}>
-                          {member.role}
-                        </Badge>
-                      </td>
-                      <td className={`px-5 py-3 text-sm font-semibold tabular-nums text-right ${
+          <>
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border">
+              {filtered.map(member => {
+                const status = getMemberStatus(member)
+                const statusConf = STATUS_CONFIG[status]
+                return (
+                  <div key={member.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-9 h-9 rounded-full bg-card-hover border border-border flex items-center justify-center text-xs font-bold text-muted shrink-0">
+                      {getInitials(member.full_name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-primary truncate">{member.full_name}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Badge variant={statusConf.variant}>{statusConf.label}</Badge>
+                        <Badge variant={member.role === 'admin' ? 'info' : 'default'}>{member.role}</Badge>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-semibold tabular-nums ${
                         status === 'empty' ? 'text-danger' : status === 'low' ? 'text-warning' : 'text-accent'
                       }`}>
                         {formatAUD(member.balance)}
-                      </td>
-                      <td className="px-5 py-3 text-center">
-                        <Badge variant={statusConf.variant}>{statusConf.label}</Badge>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <Link to={`/members/${member.id}`}>
-                          <Button size="sm" variant="secondary">Manage</Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </p>
+                      <Link to={`/members/${member.id}`} className="text-xs text-accent hover:underline mt-0.5 inline-block">
+                        Manage →
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Member</th>
+                    <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Phone</th>
+                    <th className="text-left text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Role</th>
+                    <th className="text-right text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Balance</th>
+                    <th className="text-center text-xs font-medium text-muted px-5 py-3 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filtered.map(member => {
+                    const status = getMemberStatus(member)
+                    const statusConf = STATUS_CONFIG[status]
+                    return (
+                      <tr key={member.id} className="hover:bg-card-hover transition-colors">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-card-hover border border-border flex items-center justify-center text-xs font-bold text-muted shrink-0">
+                              {getInitials(member.full_name)}
+                            </div>
+                            <span className="text-sm font-medium text-primary">{member.full_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-muted">{member.phone ?? '—'}</td>
+                        <td className="px-5 py-3">
+                          <Badge variant={member.role === 'admin' ? 'info' : 'default'}>{member.role}</Badge>
+                        </td>
+                        <td className={`px-5 py-3 text-sm font-semibold tabular-nums text-right ${
+                          status === 'empty' ? 'text-danger' : status === 'low' ? 'text-warning' : 'text-accent'
+                        }`}>
+                          {formatAUD(member.balance)}
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <Badge variant={statusConf.variant}>{statusConf.label}</Badge>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <Link to={`/members/${member.id}`}>
+                            <Button size="sm" variant="secondary">Manage</Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>

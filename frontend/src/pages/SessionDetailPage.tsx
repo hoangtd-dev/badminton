@@ -193,16 +193,16 @@ export default function SessionDetailPage() {
       {/* Vote link card — always visible to admin while not completed */}
       {isAdmin && !isCompleted && session.vote_token && (
         <Card>
-          <div className="flex items-center justify-between gap-4">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-primary">🔗 Vote Link</h3>
               <p className="text-sm text-muted mt-0.5">
                 {checkedIn.length > 0
                   ? `${checkedIn.length} member${checkedIn.length !== 1 ? 's' : ''} attending`
-                  : 'Share link so members can confirm attendance'}
+                  : 'Share so members can confirm attendance'}
               </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={handleCopyVoteLink}>
+            <Button variant="secondary" size="sm" onClick={handleCopyVoteLink} className="shrink-0">
               {voteLinkCopied ? '✓ Copied!' : 'Copy Link'}
             </Button>
           </div>
@@ -215,19 +215,19 @@ export default function SessionDetailPage() {
       {/* Check-in card */}
       {!isCompleted && (
         <Card glow={!hasCheckedIn && session.status !== 'upcoming'}>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <h3 className="font-semibold text-primary">Your Attendance</h3>
               <p className="text-sm text-muted mt-0.5">
                 {hasCheckedIn ? '✅ You are checked in' : 'You have not checked in yet'}
               </p>
             </div>
             {!hasCheckedIn ? (
-              <Button onClick={handleCheckIn} loading={checkIn.isPending} className="animate-pulse-glow">
+              <Button onClick={handleCheckIn} loading={checkIn.isPending} className="shrink-0 animate-pulse-glow">
                 Check In
               </Button>
             ) : (
-              <span className="text-accent text-2xl">✓</span>
+              <span className="text-accent text-2xl shrink-0">✓</span>
             )}
           </div>
           {isAdmin && (
@@ -256,17 +256,17 @@ export default function SessionDetailPage() {
                   .reduce((s, e) => s + e.amount, 0)
                 const canRemove = isAdmin && !isCompleted && att.checked_in_at && !att.voted
                 return (
-                  <div key={att.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted">
+                  <div key={att.id} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted shrink-0">
                         {att.profile ? getInitials(att.profile.full_name) : '?'}
                       </div>
-                      <span className="text-sm text-primary">{att.profile?.full_name ?? att.player_id}</span>
+                      <span className="text-sm text-primary truncate">{att.profile?.full_name ?? att.player_id}</span>
                       {att.voted && att.checked_in_at && (
-                        <span className="text-xs text-info">voted</span>
+                        <span className="text-xs text-info shrink-0">voted</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {att.checked_in_at ? (
                         <span className="text-xs text-accent">
                           ✓ {att.hours_attended != null && att.hours_attended !== (session.duration_hours ?? 2)
@@ -362,8 +362,8 @@ export default function SessionDetailPage() {
       {/* Finalize */}
       {isAdmin && !isCompleted && checkedIn.length > 0 && (
         <Card className="border-accent/19">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-primary">Finalize Session</h3>
               <p className="text-sm text-muted mt-0.5">
                 {totalExpenses === 0
@@ -373,8 +373,8 @@ export default function SessionDetailPage() {
                   : `Deduct ${formatAUD(sharedCostPerPlayer)} from each of ${checkedIn.length} players`}
               </p>
             </div>
-            <Button onClick={handleFinalize} loading={finalizeLoading} disabled={totalExpenses === 0}>
-              Finalize & Deduct
+            <Button onClick={handleFinalize} loading={finalizeLoading} disabled={totalExpenses === 0} className="shrink-0">
+              Finalize
             </Button>
           </div>
         </Card>
@@ -437,7 +437,7 @@ export default function SessionDetailPage() {
                         : 'text-muted hover:text-primary'
                     }`}
                   >
-                    {m === 'equal_selected' ? '⚖️ Equal among selected' : '✏️ Manual amounts'}
+                    {m === 'equal_selected' ? '⚖️ Equal split' : '✏️ Per player'}
                   </button>
                 ))}
               </div>

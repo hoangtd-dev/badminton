@@ -173,15 +173,15 @@ export default function DashboardPage() {
           </h3>
           <div className="space-y-2">
             {lowBalanceMembers.map(m => (
-              <div key={m.id} className="flex items-center justify-between bg-surface-alt rounded-lg px-3 py-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-warning/13 flex items-center justify-center text-xs font-bold text-warning">
+              <div key={m.id} className="flex items-center justify-between gap-2 bg-surface-alt rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-warning/13 flex items-center justify-center text-xs font-bold text-warning shrink-0">
                     {m.full_name.slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="text-sm text-primary">{m.full_name}</span>
+                  <span className="text-sm text-primary truncate">{m.full_name}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-sm font-semibold tabular-nums ${getMemberStatus(m) === 'empty' ? 'text-danger' : 'text-warning'}`}>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-sm font-semibold ${getMemberStatus(m) === 'empty' ? 'text-danger' : 'text-warning'}`}>
                     {formatAUD(m.balance)}
                   </span>
                   <Link to={`/members/${m.id}`}>

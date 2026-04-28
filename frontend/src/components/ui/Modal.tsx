@@ -23,12 +23,12 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
-          'relative z-10 bg-card border border-border rounded-2xl w-full max-w-md animate-fade-in',
+          'relative z-10 bg-card border border-border rounded-2xl w-full max-w-md animate-fade-in max-h-[90vh] flex flex-col',
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between p-5 border-b border-border">
+          <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
             <h2 className="text-lg font-semibold text-primary">{title}</h2>
             <button
               onClick={onClose}
@@ -40,7 +40,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             </button>
           </div>
         )}
-        <div className="p-5">{children}</div>
+        <div className="p-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   )
