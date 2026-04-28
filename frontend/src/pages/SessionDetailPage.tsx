@@ -41,6 +41,9 @@ export default function SessionDetailPage() {
     amount: '',
     note: '',
     splitType: 'equal' as 'equal' | 'custom',
+    customMode: 'equal_selected' as 'equal_selected' | 'manual',
+    customTotal: '',
+    selectedPlayers: new Set<string>(),
     allocations: {} as Record<string, string>,
   })
   const [expenseError, setExpenseError] = useState('')
@@ -88,7 +91,12 @@ export default function SessionDetailPage() {
   function openExpenseModal() {
     const initialAllocations: Record<string, string> = {}
     checkedIn.forEach(att => { initialAllocations[att.player_id] = '' })
-    setExpenseForm({ category: 'court_fee', amount: '', note: '', splitType: 'equal', allocations: initialAllocations })
+    setExpenseForm({
+      category: 'court_fee', amount: '', note: '', splitType: 'equal',
+      customMode: 'equal_selected', customTotal: '',
+      selectedPlayers: new Set(checkedIn.map(a => a.player_id)),
+      allocations: initialAllocations,
+    })
     setExpenseError('')
     setShowExpense(true)
   }
@@ -98,10 +106,20 @@ export default function SessionDetailPage() {
     setExpenseError('')
     try {
       if (expenseForm.splitType === 'custom') {
-        const allocations = checkedIn
-          .map(att => ({ player_id: att.player_id, amount: parseFloat(expenseForm.allocations[att.player_id] || '0') }))
-          .filter(a => a.amount > 0)
-        if (allocations.length === 0) { setExpenseError('Enter at least one amount'); return }
+        let allocations: { player_id: string; amount: number }[]
+        if (expenseForm.customMode === 'equal_selected') {
+          const selected = checkedIn.filter(att => expenseForm.selectedPlayers.has(att.player_id))
+          if (selected.length === 0) { setExpenseError('Select at least one player'); return }
+          const total = parseFloat(expenseForm.customTotal)
+          if (!total || total <= 0) { setExpenseError('Enter a total amount'); return }
+          const share = Math.round((total / selected.length) * 100) / 100
+          allocations = selected.map(att => ({ player_id: att.player_id, amount: share }))
+        } else {
+          allocations = checkedIn
+            .map(att => ({ player_id: att.player_id, amount: parseFloat(expenseForm.allocations[att.player_id] || '0') }))
+            .filter(a => a.amount > 0)
+          if (allocations.length === 0) { setExpenseError('Enter at least one amount'); return }
+        }
         await addExpense.mutateAsync({
           session_id: session!.id,
           category: expenseForm.category,
@@ -405,45 +423,122 @@ export default function SessionDetailPage() {
               required
             />
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted font-medium uppercase tracking-wider">Amount per player</p>
+            <div className="space-y-3">
+              {/* Custom sub-mode toggle */}
+              <div className="flex gap-1 bg-surface-alt border border-border rounded-lg p-1">
+                {(['equal_selected', 'manual'] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setExpenseForm(f => ({ ...f, customMode: m }))}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      expenseForm.customMode === m
+                        ? 'bg-surface text-primary shadow-sm'
+                        : 'text-muted hover:text-primary'
+                    }`}
+                  >
+                    {m === 'equal_selected' ? '⚖️ Equal among selected' : '✏️ Manual amounts'}
+                  </button>
+                ))}
+              </div>
+
               {checkedIn.length === 0 ? (
                 <p className="text-xs text-muted">No checked-in players yet</p>
-              ) : (
-                checkedIn.map(att => (
-                  <div key={att.player_id} className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted shrink-0">
-                        {att.profile ? getInitials(att.profile.full_name) : '?'}
-                      </div>
-                      <span className="text-sm text-primary truncate">{att.profile?.full_name ?? att.player_id}</span>
-                    </div>
-                    <div className="w-28 shrink-0">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        prefix="$"
-                        value={expenseForm.allocations[att.player_id] ?? ''}
-                        onChange={e => setExpenseForm(f => ({
-                          ...f,
-                          allocations: { ...f.allocations, [att.player_id]: e.target.value },
-                        }))}
-                      />
-                    </div>
+              ) : expenseForm.customMode === 'equal_selected' ? (
+                <>
+                  <Input
+                    label="Total Amount (AUD)"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    prefix="$"
+                    value={expenseForm.customTotal}
+                    onChange={e => setExpenseForm(f => ({ ...f, customTotal: e.target.value }))}
+                  />
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted font-medium uppercase tracking-wider">Split among</p>
+                    {checkedIn.map(att => {
+                      const selected = expenseForm.selectedPlayers.has(att.player_id)
+                      const selectedCount = expenseForm.selectedPlayers.size
+                      const total = parseFloat(expenseForm.customTotal) || 0
+                      const share = selected && selectedCount > 0 ? Math.round((total / selectedCount) * 100) / 100 : null
+                      return (
+                        <button
+                          key={att.player_id}
+                          type="button"
+                          onClick={() => setExpenseForm(f => {
+                            const next = new Set(f.selectedPlayers)
+                            next.has(att.player_id) ? next.delete(att.player_id) : next.add(att.player_id)
+                            return { ...f, selectedPlayers: next }
+                          })}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
+                            selected
+                              ? 'border-accent/40 bg-accent/6 text-primary'
+                              : 'border-border bg-surface-alt text-muted'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                              selected ? 'bg-accent border-accent' : 'border-border'
+                            }`}>
+                              {selected && <span className="text-surface text-[10px] font-bold">✓</span>}
+                            </div>
+                            <div className="w-6 h-6 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted">
+                              {att.profile ? getInitials(att.profile.full_name) : '?'}
+                            </div>
+                            <span className="text-sm">{att.profile?.full_name ?? att.player_id}</span>
+                          </div>
+                          {share !== null && (
+                            <span className="text-xs font-semibold text-accent">{formatAUD(share)}</span>
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
-                ))
-              )}
-              {checkedIn.length > 0 && (
-                <div className="flex items-center justify-between pt-1 border-t border-border">
-                  <span className="text-xs text-muted">Total</span>
-                  <span className="text-sm font-bold text-primary">
-                    {formatAUD(
-                      checkedIn.reduce((s, att) => s + (parseFloat(expenseForm.allocations[att.player_id] || '0') || 0), 0)
-                    )}
-                  </span>
-                </div>
+                  {expenseForm.selectedPlayers.size > 0 && parseFloat(expenseForm.customTotal) > 0 && (
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs text-muted">{expenseForm.selectedPlayers.size} player{expenseForm.selectedPlayers.size !== 1 ? 's' : ''} × {formatAUD(Math.round((parseFloat(expenseForm.customTotal) / expenseForm.selectedPlayers.size) * 100) / 100)}</span>
+                      <span className="text-sm font-bold text-primary">{formatAUD(parseFloat(expenseForm.customTotal))}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted font-medium uppercase tracking-wider">Amount per player</p>
+                  {checkedIn.map(att => (
+                    <div key={att.player_id} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted shrink-0">
+                          {att.profile ? getInitials(att.profile.full_name) : '?'}
+                        </div>
+                        <span className="text-sm text-primary truncate">{att.profile?.full_name ?? att.player_id}</span>
+                      </div>
+                      <div className="w-28 shrink-0">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          prefix="$"
+                          value={expenseForm.allocations[att.player_id] ?? ''}
+                          onChange={e => setExpenseForm(f => ({
+                            ...f,
+                            allocations: { ...f.allocations, [att.player_id]: e.target.value },
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between pt-1 border-t border-border">
+                    <span className="text-xs text-muted">Total</span>
+                    <span className="text-sm font-bold text-primary">
+                      {formatAUD(
+                        checkedIn.reduce((s, att) => s + (parseFloat(expenseForm.allocations[att.player_id] || '0') || 0), 0)
+                      )}
+                    </span>
+                  </div>
+                </>
               )}
             </div>
           )}
