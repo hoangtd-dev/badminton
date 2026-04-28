@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { HTMLAttributes } from 'react'
+import { type HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   glow?: boolean

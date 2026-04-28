@@ -47,6 +47,7 @@ export default function MemberDetailPage() {
       await topUp.mutateAsync({
         playerId: member!.id,
         amount: parseFloat(topUpForm.amount),
+        type: 'topup',
         description: topUpForm.description || 'Manual top-up',
       })
       setShowTopUp(false)

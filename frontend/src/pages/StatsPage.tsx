@@ -136,7 +136,7 @@ export default function StatsPage() {
                 color: 'var(--color-primary)',
                 fontSize: '13px',
               }}
-              formatter={(value: number) => [formatAUD(value), 'Spent']}
+              formatter={(value) => [formatAUD(Number(value ?? 0)), 'Spent']}
               cursor={{ fill: 'rgba(255,255,255,0.03)' }}
             />
             <Bar dataKey="spend" radius={[4, 4, 0, 0]}>

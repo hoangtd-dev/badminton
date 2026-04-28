@@ -14,7 +14,6 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function useAuthContext() {
   const ctx = useContext(AuthContext);
-  console.dir(ctx.profile);
   if (!ctx)
     throw new Error("useAuthContext must be used within an AuthProvider");
   return ctx;
