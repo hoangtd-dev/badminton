@@ -21,6 +21,12 @@ const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   other: '📦 Other',
 }
 
+function getHoursOptions(duration: number): number[] {
+  const opts: number[] = []
+  for (let h = 0.5; h <= duration; h += 0.5) opts.push(Math.round(h * 10) / 10)
+  return opts
+}
+
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -36,6 +42,9 @@ export default function SessionDetailPage() {
   const [showExpense, setShowExpense] = useState(false)
   const [showCheckInFor, setShowCheckInFor] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
+  const [selfCheckInHours, setSelfCheckInHours] = useState<number | null>(null)
+  const [checkInForTarget, setCheckInForTarget] = useState<{ id: string; name: string } | null>(null)
+  const [checkInForHours, setCheckInForHours] = useState<number | null>(null)
   const [expenseForm, setExpenseForm] = useState({
     category: 'court_fee' as ExpenseCategory,
     amount: '',
@@ -76,12 +85,16 @@ export default function SessionDetailPage() {
 
   async function handleCheckIn() {
     if (!profile) return
-    await checkIn.mutateAsync({ sessionId: session!.id, playerId: profile.id })
+    const duration = session!.duration_hours ?? 2
+    const hours = selfCheckInHours ?? duration
+    await checkIn.mutateAsync({ sessionId: session!.id, playerId: profile.id, hoursAttended: hours })
   }
 
-  async function handleCheckInFor(playerId: string) {
-    await checkIn.mutateAsync({ sessionId: session!.id, playerId })
+  async function handleCheckInFor(playerId: string, hours: number) {
+    await checkIn.mutateAsync({ sessionId: session!.id, playerId, hoursAttended: hours })
     setShowCheckInFor(false)
+    setCheckInForTarget(null)
+    setCheckInForHours(null)
   }
 
   async function handleRemoveCheckIn(playerId: string) {
@@ -213,32 +226,63 @@ export default function SessionDetailPage() {
       )}
 
       {/* Check-in card */}
-      {!isCompleted && (
-        <Card glow={!hasCheckedIn && session.status !== 'upcoming'}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-semibold text-primary">Your Attendance</h3>
-              <p className="text-sm text-muted mt-0.5">
-                {hasCheckedIn ? '✅ You are checked in' : 'You have not checked in yet'}
-              </p>
+      {!isCompleted && (() => {
+        const duration = session.duration_hours ?? 2
+        const hoursOptions = getHoursOptions(duration)
+        const effectiveHours = selfCheckInHours ?? duration
+        return (
+          <Card glow={!hasCheckedIn && session.status !== 'upcoming'}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-primary">Your Attendance</h3>
+                <p className="text-sm text-muted mt-0.5">
+                  {hasCheckedIn
+                    ? `✅ Checked in · ${myAttendance?.hours_attended ?? duration}h`
+                    : 'Select how long you\'ll attend'}
+                </p>
+              </div>
+              {hasCheckedIn && <span className="text-accent text-2xl shrink-0">✓</span>}
             </div>
-            {!hasCheckedIn ? (
-              <Button onClick={handleCheckIn} loading={checkIn.isPending} className="shrink-0 animate-pulse-glow">
-                Check In
-              </Button>
-            ) : (
-              <span className="text-accent text-2xl shrink-0">✓</span>
+
+            {!hasCheckedIn && (
+              <div className="mt-3 space-y-3">
+                <div className={`grid gap-2 ${hoursOptions.length <= 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  {hoursOptions.map(h => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => setSelfCheckInHours(h)}
+                      className={`py-2 rounded-lg text-sm font-semibold transition-all ${
+                        effectiveHours === h
+                          ? 'bg-accent text-surface'
+                          : 'bg-surface-alt border border-border text-muted hover:text-primary'
+                      }`}
+                    >
+                      {h}h
+                    </button>
+                  ))}
+                </div>
+                {effectiveHours < duration && (
+                  <p className="text-xs text-warning">
+                    ⚡ You'll be charged {Math.round((effectiveHours / duration) * 100)}% of the full fee
+                  </p>
+                )}
+                <Button onClick={handleCheckIn} loading={checkIn.isPending} className="w-full animate-pulse-glow">
+                  Check In · {effectiveHours}h
+                </Button>
+              </div>
             )}
-          </div>
-          {isAdmin && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <Button variant="secondary" size="sm" onClick={() => setShowCheckInFor(true)}>
-                Check in for someone
-              </Button>
-            </div>
-          )}
-        </Card>
-      )}
+
+            {isAdmin && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <Button variant="secondary" size="sm" onClick={() => setShowCheckInFor(true)}>
+                  Check in for someone
+                </Button>
+              </div>
+            )}
+          </Card>
+        )
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Attendance list */}
@@ -558,25 +602,75 @@ export default function SessionDetailPage() {
       </Modal>
 
       {/* Check in for member modal */}
-      <Modal open={showCheckInFor} onClose={() => setShowCheckInFor(false)} title="Check In For Member">
-        <div className="space-y-2">
-          {notAttendingMembers.length === 0 ? (
-            <p className="text-sm text-muted">All members are already checked in</p>
-          ) : (
-            notAttendingMembers.map(m => (
-              <button
-                key={m.id}
-                onClick={() => handleCheckInFor(m.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-card-hover transition-colors text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted">
-                  {getInitials(m.full_name)}
-                </div>
-                <span className="text-sm text-primary">{m.full_name}</span>
-              </button>
-            ))
-          )}
-        </div>
+      <Modal
+        open={showCheckInFor}
+        onClose={() => { setShowCheckInFor(false); setCheckInForTarget(null); setCheckInForHours(null) }}
+        title={checkInForTarget ? checkInForTarget.name : 'Check In For Member'}
+      >
+        {!checkInForTarget ? (
+          <div className="space-y-2">
+            {notAttendingMembers.length === 0 ? (
+              <p className="text-sm text-muted">All members are already checked in</p>
+            ) : (
+              notAttendingMembers.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => { setCheckInForTarget({ id: m.id, name: m.full_name }); setCheckInForHours(null) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-card-hover transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-card-hover flex items-center justify-center text-xs font-bold text-muted shrink-0">
+                    {getInitials(m.full_name)}
+                  </div>
+                  <span className="text-sm text-primary flex-1">{m.full_name}</span>
+                  <svg className="w-4 h-4 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))
+            )}
+          </div>
+        ) : (() => {
+          const duration = session.duration_hours ?? 2
+          const hoursOptions = getHoursOptions(duration)
+          const effectiveHours = checkInForHours ?? duration
+          return (
+            <div className="space-y-4">
+              <div className={`grid gap-2 ${hoursOptions.length <= 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                {hoursOptions.map(h => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setCheckInForHours(h)}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-all ${
+                      effectiveHours === h
+                        ? 'bg-accent text-surface'
+                        : 'bg-surface-alt border border-border text-muted hover:text-primary'
+                    }`}
+                  >
+                    {h}h
+                  </button>
+                ))}
+              </div>
+              {effectiveHours < duration && (
+                <p className="text-xs text-warning">
+                  ⚡ Charged {Math.round((effectiveHours / duration) * 100)}% of the full fee
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setCheckInForTarget(null)} className="flex-1">
+                  Back
+                </Button>
+                <Button
+                  onClick={() => handleCheckInFor(checkInForTarget.id, effectiveHours)}
+                  loading={checkIn.isPending}
+                  className="flex-1"
+                >
+                  Check In · {effectiveHours}h
+                </Button>
+              </div>
+            </div>
+          )
+        })()}
       </Modal>
 
       {/* Delete confirm modal */}
