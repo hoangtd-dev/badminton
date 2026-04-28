@@ -30,7 +30,7 @@ function getHoursOptions(duration: number): number[] {
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, refreshProfile } = useAuth()
   const { data: session, isLoading } = useSession(id!)
   const { data: allMembers } = useMembers()
   const checkIn = useCheckIn()
@@ -159,6 +159,7 @@ export default function SessionDetailPage() {
     setFinalizeLoading(true)
     try {
       await finalizeSession.mutateAsync(session!.id)
+      await refreshProfile()
     } catch (e) {
       console.error(e)
     } finally {
